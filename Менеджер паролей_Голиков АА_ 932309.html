@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Менеджер паролей</title>
+    <style>
+        .author-info {
+            position: fixed;
+            bottom: 10px;
+            right: 20px;
+            text-align: right;
+            font-size: 1.2rem;
+            color: #777;
+        }
+        .hidden {
+            display: none;
+        }
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: auto;
+            padding-top: 2rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+        }
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        input[type="text"], input[type="password"], input[type="url"], button {
+            padding: 0.8rem;
+            margin: 0.5rem 0;
+            width: 100%;
+        }
+        button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3a7bc8;
+        }
+        .action-btn {
+            padding: 0.5rem;
+            margin-right: 0.5rem;
+            border: none;
+            cursor: pointer;
+        }
+        .show-btn, .edit-btn, .save-btn {
+            background-color: #f39c12;
+            color: white;
+        }
+        .delete-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Менеджер паролей</h1>
+        
+        <h2>Добавить новый пароль</h2>
+        <form id="passwordForm">
+            <input type="text" id="loginInput" placeholder="Логин" required>
+            <input type="password" id="passwordInput" placeholder="Пароль" required>
+            <input type="url" id="urlInput" placeholder="URL" required>
+            <button type="submit">Добавить пароль</button>
+        </form>
+
+        <h2 id="savedPasswordsHeading" class="hidden">Сохраненные пароли</h2>
+        <table id="passwordTable" class="hidden">
+            <thead>
+                <tr>
+                    <th>Логин</th>
+                    <th>Пароль</th>
+                    <th>URL</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="author-info">
+        Александр Голиков,<br>
+        932309
+    </div>
+
+    <script>
+        function loadPasswords() {
+            return JSON.parse(localStorage.getItem('passwords')) || [];
+        }
+
+        function savePasswords(passwords) {
+            localStorage.setItem('passwords', JSON.stringify(passwords));
+        }
+
+        function renderPasswordTable() {
+            const passwords = loadPasswords();
+            const tableBody = document.querySelector('#passwordTable tbody');
+            tableBody.innerHTML = '';
+
+            const savedPasswordsHeading = document.getElementById('savedPasswordsHeading');
+            const passwordTable = document.getElementById('passwordTable');
+
+            if (passwords.length === 0) {
+                savedPasswordsHeading.classList.add('hidden');
+                passwordTable.classList.add('hidden');
+                return;
+            }
+
+            savedPasswordsHeading.classList.remove('hidden');
+            passwordTable.classList.remove('hidden');
+
+            passwords.forEach((password, index) => {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td><input type="text" id="login-${index}" value="${password.login}" disabled></td>
+                    <td><input type="password" id="password-${index}" value="${password.password}" disabled></td>
+                    <td><input type="url" id="url-${index}" value="${password.url}" disabled></td>
+                    <td>
+                        <button class="action-btn show-btn" onclick="togglePassword(${index})">Показать пароль</button>
+                        <button class="action-btn edit-btn" onclick="editPassword(${index})">Редактировать</button>
+                        <button class="action-btn save-btn" onclick="savePassword(${index})" style="display: none;">Сохранить</button>
+                        <button class="action-btn delete-btn" onclick="deletePassword(${index})">Удалить</button>
+                    </td>
+                `;
+            });
+        }
+
+        function addPassword(event) {
+            event.preventDefault();
+            const login = document.getElementById('loginInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const url = document.getElementById('urlInput').value;
+
+            const passwords = loadPasswords();
+            passwords.push({ login, password, url });
+            savePasswords(passwords);
+
+            renderPasswordTable();
+            event.target.reset();
+        }
+
+        function togglePassword(index) {
+            const passwordInput = document.getElementById(`password-${index}`);
+            const showBtn = document.querySelectorAll(`#passwordTable tbody tr:nth-child(${index + 1}) .show-btn`)[0];
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                showBtn.textContent = 'Скрыть';
+            } else {
+                passwordInput.type = 'password';
+                showBtn.textContent = 'Показать';
+            }
+        }
+
+        function editPassword(index) {
+            document.getElementById(`login-${index}`).disabled = false;
+            document.getElementById(`password-${index}`).disabled = false;
+            document.getElementById(`url-${index}`).disabled = false;
+            document.querySelectorAll(`#passwordTable tbody tr:nth-child(${index + 1}) .save-btn`)[0].style.display = 'inline-block';
+        }
+
+        function savePassword(index) {
+            const passwords = loadPasswords();
+            const login = document.getElementById(`login-${index}`).value;
+            const password = document.getElementById(`password-${index}`).value;
+            const url = document.getElementById(`url-${index}`).value;
+
+            passwords[index].login = login;
+            passwords[index].password = password;
+            passwords[index].url = url;
+            savePasswords(passwords);
+
+            renderPasswordTable();
+        }
+
+        function deletePassword(index) {
+            const passwords = loadPasswords();
+            passwords.splice(index, 1);
+            savePasswords(passwords);
+            renderPasswordTable();
+        }
+
+        document.getElementById('passwordForm').addEventListener('submit', addPassword);
+
+        renderPasswordTable();
+    </script>
+</body>
+</html>
